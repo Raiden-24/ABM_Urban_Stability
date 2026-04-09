@@ -200,11 +200,15 @@ with tab1:
         st.warning("⚠️ Run `11_run_experiments.py` to generate experiment data first.")
     else:
         row = summary[(summary["scenario"] == "exp1_baseline") & (summary["city"] == city)]
-        if not row.empty:
+        if row.empty:
+            st.info(f"No baseline data found for {city}. Run 11_run_experiments.py first.")
+        else:
             r = row.iloc[0]
-            final_usi, final_gini = r["final_USI"], r["final_Gini"]
-            final_trust, min_usi  = r["final_Trust"], r["min_USI"]
-            final_sr = r.get("final_SR", 0.75)
+            final_usi   = float(r["final_USI"])
+            final_gini  = float(r["final_Gini"])
+            final_trust = float(r["final_Trust"])
+            min_usi     = float(r["min_USI"])
+            final_sr    = float(r.get("final_SR", 0.75))
 
             # KPI Cards
             c1, c2, c3, c4 = st.columns(4)
@@ -226,85 +230,84 @@ with tab1:
                         f'<div class="kpi-delta">{delta_html}</div>'
                         f'</div>', unsafe_allow_html=True)
 
-        st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
 
-        # Verdict
-        verdict = generate_verdict(city, "exp1_baseline", final_usi)
-        st.markdown(f"**Research Verdict:** {verdict}")
-        st.markdown("---")
+            # Verdict
+            verdict = generate_verdict(city, "exp1_baseline", final_usi)
+            st.markdown(f"**Research Verdict:** {verdict}")
+            st.markdown("---")
 
-        # Insights
-        st.markdown('<div class="section-head">🧠 Insight Engine</div>', unsafe_allow_html=True)
-        insights = generate_insights(
-            city=city, scenario_id="exp1_baseline",
-            final_usi=final_usi, min_usi=min_usi,
-            final_trust=final_trust, final_gini=final_gini, final_sr=final_sr,
-        )
-        render_insights(insights)
-
-        st.markdown("---")
-
-        # Chart
-        df.columns = df.columns.str.lower()
-        city_df = baseline_df[baseline_df["city"] == city].sort_values("step")
-        if not city_df.empty:
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=city_df["step"], y=city_df["USI"], name="USI",
-                mode="lines", line=dict(color=CITY_COLORS[city], width=3),
-                fill="tozeroy",
-                fillcolor=f"rgba({int(CITY_COLORS[city][1:3],16)},"
-                           f"{int(CITY_COLORS[city][3:5],16)},"
-                           f"{int(CITY_COLORS[city][5:7],16)},0.1)",
-            ))
-            fig.add_trace(go.Scatter(
-                x=city_df["step"], y=city_df["Trust"], name="Trust",
-                mode="lines", line=dict(color="#3fb950", width=2, dash="dash"),
-            ))
-            fig.add_trace(go.Scatter(
-                x=city_df["step"], y=city_df["S_R"], name="S_R (Resource)",
-                mode="lines", line=dict(color="#d29922", width=2, dash="dot"),
-            ))
-            fig.add_trace(go.Scatter(
-                x=city_df["step"], y=city_df["Gini"], name="Gini (Inequality)",
-                mode="lines", line=dict(color="#a371f7", width=2, dash="dot"),
-            ))
-            fig.add_hline(y=0.5, line_dash="dot", line_color="#f85149",
-                          annotation_text="Collapse threshold (0.5)")
-            fig.update_layout(
-                title=f"{city} — Baseline Stability Metrics (24 Months)",
-                xaxis_title="Month", yaxis_title="Score",
-                yaxis_range=[0, 1.05], **PLOTLY_LAYOUT)
-            st.plotly_chart(fig, width='stretch')
-
-        # City profile
-        col_a, col_b = st.columns(2)
-        with col_a:
-            st.markdown('<div class="section-head">City Profile</div>', unsafe_allow_html=True)
-            cfg = load_city_config(city)
-            st.table(pd.DataFrame.from_dict({
-                "Population":        f"{cfg['population']:,}",
-                "Households":        f"{cfg['households']:,}",
-                "Avg. HH Size":      f"{cfg['avg_household_size']:.1f}",
-                "Literacy Rate":     f"{cfg['literacy_rate']*100:.0f}%",
-                "Simulation Agents": str(cfg["num_agents"]),
-            }, orient="index", columns=["Value"]))
-        with col_b:
-            st.markdown('<div class="section-head">Income Group Distribution</div>',
-                        unsafe_allow_html=True)
-            cfg = load_city_config(city)
-            groups = cfg["agent_groups"]
-            fig_pie = go.Figure(go.Pie(
-                labels=[g["name"].replace("_", " ").title() for g in groups],
-                values=[g["fraction"] * 100 for g in groups],
-                hole=0.45,
-                marker=dict(colors=["#f85149", "#d29922", "#3fb950"]),
-            ))
-            fig_pie.update_layout(
-                showlegend=True,
-                **{k: v for k, v in PLOTLY_LAYOUT.items() if k not in ("xaxis", "yaxis")}
+            # Insights
+            st.markdown('<div class="section-head">🧠 Insight Engine</div>', unsafe_allow_html=True)
+            insights = generate_insights(
+                city=city, scenario_id="exp1_baseline",
+                final_usi=final_usi, min_usi=min_usi,
+                final_trust=final_trust, final_gini=final_gini, final_sr=final_sr,
             )
-            st.plotly_chart(fig_pie, width='stretch')
+            render_insights(insights)
+
+            st.markdown("---")
+
+            # Chart — use baseline_df (already loaded above)
+            city_df = baseline_df[baseline_df["city"] == city].sort_values("step")
+            if not city_df.empty:
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=city_df["step"], y=city_df["USI"], name="USI",
+                    mode="lines", line=dict(color=CITY_COLORS[city], width=3),
+                    fill="tozeroy",
+                    fillcolor=f"rgba({int(CITY_COLORS[city][1:3],16)},"
+                               f"{int(CITY_COLORS[city][3:5],16)},"
+                               f"{int(CITY_COLORS[city][5:7],16)},0.1)",
+                ))
+                fig.add_trace(go.Scatter(
+                    x=city_df["step"], y=city_df["Trust"], name="Trust",
+                    mode="lines", line=dict(color="#3fb950", width=2, dash="dash"),
+                ))
+                fig.add_trace(go.Scatter(
+                    x=city_df["step"], y=city_df["S_R"], name="S_R (Resource)",
+                    mode="lines", line=dict(color="#d29922", width=2, dash="dot"),
+                ))
+                fig.add_trace(go.Scatter(
+                    x=city_df["step"], y=city_df["Gini"], name="Gini (Inequality)",
+                    mode="lines", line=dict(color="#a371f7", width=2, dash="dot"),
+                ))
+                fig.add_hline(y=0.5, line_dash="dot", line_color="#f85149",
+                              annotation_text="Collapse threshold (0.5)")
+                fig.update_layout(
+                    title=f"{city} — Baseline Stability Metrics (24 Months)",
+                    xaxis_title="Month", yaxis_title="Score",
+                    yaxis_range=[0, 1.05], **PLOTLY_LAYOUT)
+                st.plotly_chart(fig, width='stretch')
+
+            # City profile (always shown — from config, no CSV needed)
+            col_a, col_b = st.columns(2)
+            with col_a:
+                st.markdown('<div class="section-head">City Profile</div>', unsafe_allow_html=True)
+                cfg = load_city_config(city)
+                st.table(pd.DataFrame.from_dict({
+                    "Population":        f"{cfg['population']:,}",
+                    "Households":        f"{cfg['households']:,}",
+                    "Avg. HH Size":      f"{cfg['avg_household_size']:.1f}",
+                    "Literacy Rate":     f"{cfg['literacy_rate']*100:.0f}%",
+                    "Simulation Agents": str(cfg["num_agents"]),
+                }, orient="index", columns=["Value"]))
+            with col_b:
+                st.markdown('<div class="section-head">Income Group Distribution</div>',
+                            unsafe_allow_html=True)
+                cfg = load_city_config(city)
+                groups = cfg["agent_groups"]
+                fig_pie = go.Figure(go.Pie(
+                    labels=[g["name"].replace("_", " ").title() for g in groups],
+                    values=[g["fraction"] * 100 for g in groups],
+                    hole=0.45,
+                    marker=dict(colors=["#f85149", "#d29922", "#3fb950"]),
+                ))
+                fig_pie.update_layout(
+                    showlegend=True,
+                    **{k: v for k, v in PLOTLY_LAYOUT.items() if k not in ("xaxis", "yaxis")}
+                )
+                st.plotly_chart(fig_pie, width='stretch')
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
