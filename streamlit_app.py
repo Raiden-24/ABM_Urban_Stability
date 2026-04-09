@@ -114,10 +114,22 @@ PLOTLY_LAYOUT = dict(
 # ─────────────────────────────────────────────────────────────────────────────
 # DATA LOADERS
 # ─────────────────────────────────────────────────────────────────────────────
+# Columns expected in every scenario CSV
+_SCENARIO_COLS = ["step", "city", "USI", "Trust", "S_R", "Gini"]
+_EMPTY_SCENARIO = pd.DataFrame(columns=_SCENARIO_COLS)
+
 @st.cache_data
 def load_scenario(scenario_id: str) -> pd.DataFrame:
+    """Load _all_cities.csv for a scenario; return typed empty DF if missing."""
     path = EXPERIMENTS_DIR / scenario_id / "_all_cities.csv"
-    return pd.read_csv(path) if path.exists() else pd.DataFrame()
+    if path.exists():
+        df = pd.read_csv(path)
+        # Ensure expected columns exist even if CSV is malformed
+        for col in _SCENARIO_COLS:
+            if col not in df.columns:
+                df[col] = None
+        return df
+    return _EMPTY_SCENARIO.copy()
 
 @st.cache_data
 def load_master_summary() -> pd.DataFrame:
@@ -262,7 +274,7 @@ with tab1:
                 title=f"{city} — Baseline Stability Metrics (24 Months)",
                 xaxis_title="Month", yaxis_title="Score",
                 yaxis_range=[0, 1.05], **PLOTLY_LAYOUT)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
         # City profile
         col_a, col_b = st.columns(2)
@@ -291,7 +303,7 @@ with tab1:
                 showlegend=True,
                 **{k: v for k, v in PLOTLY_LAYOUT.items() if k not in ("xaxis", "yaxis")}
             )
-            st.plotly_chart(fig_pie, use_container_width=True)
+            st.plotly_chart(fig_pie, width='stretch')
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -335,7 +347,7 @@ with tab2:
             title=f"{city_cmp} — USI Over 24 Months",
             xaxis_title="Month", yaxis_title="USI",
             yaxis_range=[0.3, 1.05], **PLOTLY_LAYOUT)
-        st.plotly_chart(fig_usi, use_container_width=True)
+        st.plotly_chart(fig_usi, width='stretch')
 
         # Trust + Gini side by side
         col_t, col_g = st.columns(2)
@@ -362,9 +374,9 @@ with tab2:
                                  yaxis_range=[-0.05, 1.05], **PLOTLY_LAYOUT)
         fig_gini.update_layout(title="Consumption Inequality (Gini)", **PLOTLY_LAYOUT)
         with col_t:
-            st.plotly_chart(fig_trust, use_container_width=True)
+            st.plotly_chart(fig_trust, width='stretch')
         with col_g:
-            st.plotly_chart(fig_gini, use_container_width=True)
+            st.plotly_chart(fig_gini, width='stretch')
 
         # ── Insight Engine: scenario-aware ──
         st.markdown('<div class="section-head">🧠 Scenario Insights</div>',
@@ -410,7 +422,7 @@ with tab2:
             fig_bar.update_layout(
                 title="USI Gain from Govt. Schemes (Policy ON − OFF)",
                 yaxis_title="USI Delta", **PLOTLY_LAYOUT)
-            st.plotly_chart(fig_bar, use_container_width=True)
+            st.plotly_chart(fig_bar, width='stretch')
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -441,7 +453,7 @@ with tab3:
         fig_heat.update_layout(
             title="Urban Stability Index — City × Scenario Heatmap (Month 24)",
             **PLOTLY_LAYOUT)
-        st.plotly_chart(fig_heat, use_container_width=True)
+        st.plotly_chart(fig_heat, width='stretch')
 
         # City ranking table
         st.markdown('<div class="section-head">City Stability Ranking (Baseline)</div>',
@@ -453,7 +465,7 @@ with tab3:
         base_rows["Grade"] = base_rows["final_USI"].apply(
             lambda v: "🟢 Stable" if v >= 0.85 else ("🟡 Moderate" if v >= 0.65 else "🔴 Fragile"))
         base_rows.columns = ["City","Final USI","Min USI","Gini","Trust","Grade"]
-        st.dataframe(base_rows.set_index("City"), use_container_width=True)
+        st.dataframe(base_rows.set_index("City"), width='stretch')
 
         # ── Cross-city insights ──
         st.markdown('<div class="section-head">🧠 Cross-City Research Insights</div>',
@@ -494,7 +506,7 @@ with tab3:
         fp = FIGURES_DIR / fname
         if fp.exists():
             with col:
-                st.image(str(fp), caption=cap, use_container_width=True)
+                st.image(str(fp), caption=cap, width='stretch')
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -522,7 +534,7 @@ with tab4:
         en_gj = st.checkbox("Gruha Jyothi (Free Electricity)", value=True)
         en_gl = st.checkbox("Gruha Lakshmi (₹2000 Transfer)",  value=True)
 
-        run_live = st.button("🚀 Run Simulation", type="primary", use_container_width=True)
+        run_live = st.button("🚀 Run Simulation", type="primary", width='stretch')
 
     with col_cfg2:
         if run_live:
@@ -597,7 +609,7 @@ with tab4:
                 title=f"{live_city} — Live Simulation ({live_steps} months)",
                 xaxis_title="Month", yaxis_title="Score",
                 yaxis_range=[-0.05, 1.05], **PLOTLY_LAYOUT)
-            st.plotly_chart(fig_live, use_container_width=True)
+            st.plotly_chart(fig_live, width='stretch')
 
             # ── Live Insight Engine ──
             st.markdown('<div class="section-head">🧠 Live Insights</div>',
