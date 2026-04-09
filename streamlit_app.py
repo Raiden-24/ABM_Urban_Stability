@@ -178,9 +178,24 @@ with st.sidebar:
     st.caption("🖼️ Figures: `results/figures/`")
     data_ok = (EXPERIMENTS_DIR / "MASTER_SUMMARY.csv").exists()
     if data_ok:
-        st.success("✅ Experiment data loaded")
+        st.success("✅ Master summary loaded")
     else:
         st.error("❌ Run `11_run_experiments.py` first")
+
+    # Per-scenario data availability (helps diagnose Cloud file issues)
+    st.markdown("---")
+    st.caption("**Scenario data files:**")
+    for sid, slabel in [
+        ("exp1_baseline",        "Baseline"),
+        ("exp2_flood",           "Flood"),
+        ("exp3_drought",         "Drought"),
+        ("exp4_economic",        "Economic"),
+        ("exp5a_shock_nopolicy", "All Shocks (no policy)"),
+        ("exp5b_shock_policy",   "All Shocks (with policy)"),
+    ]:
+        p = EXPERIMENTS_DIR / sid / "_all_cities.csv"
+        icon = "✅" if p.exists() else "❌"
+        st.caption(f"{icon} {slabel}")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # TABS
