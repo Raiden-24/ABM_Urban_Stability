@@ -245,6 +245,7 @@ with tab1:
         st.markdown("---")
 
         # Chart
+        df.columns = df.columns.str.lower()
         city_df = baseline_df[baseline_df["city"] == city].sort_values("step")
         if not city_df.empty:
             fig = go.Figure()
