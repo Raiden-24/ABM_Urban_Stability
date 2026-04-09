@@ -118,23 +118,30 @@ PLOTLY_LAYOUT = dict(
 _SCENARIO_COLS = ["step", "city", "USI", "Trust", "S_R", "Gini"]
 _EMPTY_SCENARIO = pd.DataFrame(columns=_SCENARIO_COLS)
 
-@st.cache_data
-def load_scenario(scenario_id: str) -> pd.DataFrame:
+# Bump this string whenever data files change — forces cache invalidation
+_CACHE_VER = "v4-data-added"
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_scenario(scenario_id: str, _ver: str = _CACHE_VER) -> pd.DataFrame:
     """Load _all_cities.csv for a scenario; return typed empty DF if missing."""
     path = EXPERIMENTS_DIR / scenario_id / "_all_cities.csv"
     if path.exists():
         df = pd.read_csv(path)
-        # Ensure expected columns exist even if CSV is malformed
         for col in _SCENARIO_COLS:
             if col not in df.columns:
                 df[col] = None
         return df
     return _EMPTY_SCENARIO.copy()
 
-@st.cache_data
-def load_master_summary() -> pd.DataFrame:
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_master_summary(_ver: str = _CACHE_VER) -> pd.DataFrame:
     path = EXPERIMENTS_DIR / "MASTER_SUMMARY.csv"
     return pd.read_csv(path) if path.exists() else pd.DataFrame()
+
+# Force-flush any stale empty-DataFrame cache from before data files existed
+if "cache_cleared" not in st.session_state:
+    st.cache_data.clear()
+    st.session_state["cache_cleared"] = True
 
 def stability_grade(usi: float) -> str:
     if usi >= 0.85:
