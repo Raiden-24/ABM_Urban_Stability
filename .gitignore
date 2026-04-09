@@ -1,4 +1,4 @@
-# Python
+# ── Python ──────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
@@ -8,37 +8,55 @@ dist/
 build/
 .eggs/
 
-# Virtual environment
+# ── Virtual environment ──────────────────────────────────────────────────────
 venv/
 .venv/
 env/
 ENV/
 
-# Streamlit cache
+# ── Streamlit cache ──────────────────────────────────────────────────────────
 .streamlit/
 
-# IDE
+# ── IDE / OS ─────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Project-specific: large/generated files that don't belong in git
-results/experiments/
-results/figures/
+# ── Temporary scripts ────────────────────────────────────────────────────────
 err.txt
 fix_paths.py
+test_imports.py
 
-# Raw datasets (too large / not redistributable)
-DATASETS/*.pdf
-DATASETS/*.xlsx
-DATASETS/*.xls
-DATASETS/*.csv
+# ── Raw datasets (not redistributable, reproducible by running pipelines) ────
+DATASETS/
 
-# Keep processed config (needed to run without re-running pipeline)
-!data/processed/model_config_by_city.json
-!data/processed/shock_parameters.json
-!data/processed/policy_parameters.json
+# ── Generated figures (reproducible via 12_analyze_results.py) ───────────────
+results/figures/
+
+# ── All per-city CSVs (reproducible via 11_run_experiments.py) ───────────────
+results/experiments/exp1_baseline/Bengaluru.csv
+results/experiments/exp1_baseline/Mysuru.csv
+results/experiments/exp1_baseline/Mangaluru.csv
+results/experiments/exp1_baseline/Hubballi_Dharwad.csv
+results/experiments/exp1_baseline/Belagavi.csv
+results/experiments/exp2_flood/
+results/experiments/exp3_drought/
+results/experiments/exp4_economic/
+results/experiments/exp5a_shock_nopolicy/
+results/experiments/exp5b_shock_policy/
+results/experiments/exp6_combined/
+
+# ── Old baseline CSVs in root results/ ─────────────────────────────────────
+results/Bengaluru_baseline.csv
+results/Mysuru_baseline.csv
+results/Mangaluru_baseline.csv
+results/Hubballi_Dharwad_baseline.csv
+results/Belagavi_baseline.csv
+results/baseline_run_001.csv
+Bengaluru_baseline.csv
+
+# ── KEEP: minimal CSVs required by dashboard ─────────────────────────────────
+# results/experiments/MASTER_SUMMARY.csv          ← kept (not excluded above)
+# results/experiments/exp1_baseline/_all_cities.csv ← kept
