@@ -1,6 +1,0 @@
-{
-    "faaaahOnFail.onAnyFailure": true,
-    "faaaahOnFail.onBuildFailure": true,
-    "faaaahOnFail.onRuntimeFailure": true,
-    "faaaahOnFail.volume": 1
-}
