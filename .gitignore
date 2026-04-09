@@ -1,3 +1,44 @@
-﻿venv/
+# Python
 __pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+venv/
+.venv/
+env/
+ENV/
+
+# Streamlit cache
+.streamlit/
+
+# IDE
 .vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project-specific: large/generated files that don't belong in git
+results/experiments/
+results/figures/
+err.txt
+fix_paths.py
+
+# Raw datasets (too large / not redistributable)
+DATASETS/*.pdf
+DATASETS/*.xlsx
+DATASETS/*.xls
+DATASETS/*.csv
+
+# Keep processed config (needed to run without re-running pipeline)
+!data/processed/model_config_by_city.json
+!data/processed/shock_parameters.json
+!data/processed/policy_parameters.json

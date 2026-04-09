@@ -28,24 +28,32 @@ class StabilityAnalyzer:
     # ------------------------------------------------------------------
     def compute_S_R(self, agents, total_supply):
         """
-        S_R = min(total_allocation / total_demand, 1.0)
+        S_R = Weighted composite resource sufficiency across all 3 resources.
 
-        Measures whether the system's supply is sufficient to meet aggregate
-        demand.  Unlike the old variance formula this is independent of S_I
-        (Gini-based inequality), so each USI component captures a distinct
-        dimension of urban stability.
+        Formula:
+            S_R = 0.4 * (total_food_alloc / total_food_demand)
+                + 0.4 * (total_water_alloc / total_water_demand)
+                + 0.2 * (total_elec_alloc  / total_elec_demand)
 
-        Edge cases:
-            - total_demand == 0  → S_R = 1.0  (no pressure on the system)
-            - total_supply == 0  → S_R = 0.0  (complete resource collapse)
+        Weights match the Gini composite (food & water equally critical,
+        electricity secondary) — ensures S_R and S_I measure consistent
+        dimensions of the same multi-resource system.
 
-        Range: [0, 1]
+        Range: [0, 1]  — 1 = all demands fully met across all resources
         """
-        total_demand = sum(a.demand for a in agents)
-        if total_demand == 0:
-            return 1.0  # no demand pressure → fully sufficient
-        total_allocated = min(total_supply, total_demand)
-        return float(min(total_allocated / total_demand, 1.0))
+        def _ratio(alloc_attr, demand_attr):
+            total_demand = sum(getattr(a, demand_attr) for a in agents)
+            if total_demand == 0:
+                return 1.0
+            total_alloc = sum(getattr(a, alloc_attr) for a in agents)
+            return min(total_alloc / total_demand, 1.0)
+
+        food_ratio  = _ratio("food_allocated",  "food_demand")
+        water_ratio = _ratio("water_allocated", "water_demand")
+        elec_ratio  = _ratio("elec_allocated",  "elec_demand")
+
+        return float(0.4 * food_ratio + 0.4 * water_ratio + 0.2 * elec_ratio)
+
 
     # ------------------------------------------------------------------
     # 3.3  Cooperation Ratio
@@ -58,7 +66,22 @@ class StabilityAnalyzer:
     # 3.1 / 3.4  Gini & Inequality Stability
     # ------------------------------------------------------------------
     def compute_gini(self, agents):
-        """Standard Gini coefficient over agent allocations. Range: [0, 1]"""
+        """
+        Gini coefficient over agent composite consumption-satisfaction scores.
+
+        Each agent's `allocated` = weighted satisfaction ratio:
+            0.40 * (food_allocated / food_demand)
+          + 0.40 * (water_allocated / water_demand)
+          + 0.20 * (elec_allocated  / elec_demand)
+
+        Range [0, 1]:
+          0 = perfect equality (all agents equally satisfied)
+          1 = extreme inequality (some fully satisfied, others starved)
+
+        Responds dynamically to:
+          - Shocks  → supply drops → poor under-served → Gini rises
+          - Policies → PDS floor + income transfers → Gini falls
+        """
         values = sorted([a.allocated for a in agents])
         n = len(values)
         if n == 0:

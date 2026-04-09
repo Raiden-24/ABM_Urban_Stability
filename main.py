@@ -1,95 +1,82 @@
+"""
+main.py — Phase 5: Data-driven 5-city baseline simulation
+
+Runs 12-month (1 year) baseline for all 5 Karnataka cities.
+Exports results to results/{city}_baseline.csv
+Prints summary table at the end.
+"""
+import sys
+import pathlib
+import pandas as pd
+
+# Add project root to path so imports work
+sys.path.insert(0, str(pathlib.Path(__file__).parent))
+
+from data.scripts.config_loader import load_city_config, CITIES
 from model.urban_model import UrbanStabilityModel
-import matplotlib.pyplot as plt
 
-# --------------------------------------------------
-# RUN MODEL
-# --------------------------------------------------
+RESULTS_DIR = pathlib.Path("results")
+RESULTS_DIR.mkdir(exist_ok=True)
 
-model = UrbanStabilityModel()
+NUM_STEPS = 12   # 1 full year (monthly timestep)
 
-while model.running and model.current_step < model.config["num_steps"]:
-    model.step()
+# -----------------------------------------------------------------------
+# RUN BASELINE FOR ALL 5 CITIES
+# -----------------------------------------------------------------------
+summaries = []
 
-    if model.current_step % 5 == 0:
+for city in CITIES:
+    print(f"\n{'='*50}")
+    print(f"Running: {city}  ({NUM_STEPS} monthly steps)")
+    print(f"{'='*50}")
+
+    cfg   = load_city_config(city)
+    cfg["num_steps"] = NUM_STEPS
+    model = UrbanStabilityModel(config=cfg)
+
+    while model.running and model.current_step < NUM_STEPS:
+        model.step()
+        m = model.current_step
         print(
-            f"Step {model.current_step}: "
-            f"Gini = {model.current_gini:.4f}, "
-            f"USI = {model.current_usi:.4f}"
+            f"  Month {m:02d} | USI={model.current_usi:.3f} "
+            f"Gini={model.current_gini:.3f} "
+            f"Trust={model.current_C:.3f} "
+            f"S_R={model.current_S_R:.3f} "
+            f"Shocks={model.shock_module.active_shock_names or 'none'}"
         )
 
-# --------------------------------------------------
-# COLLECT DATA
-# --------------------------------------------------
+    # Export city results
+    df = model.datacollector.get_model_vars_dataframe()
+    out = RESULTS_DIR / f"{city.replace(' ', '_').replace('-', '_')}_baseline.csv"
+    df.to_csv(out)
+    print(f"  Saved: {out}")
 
-data = model.datacollector.get_model_vars_dataframe()
+    summaries.append(model.get_summary())
 
-# --------------------------------------------------
-# PLOT 1 : Average Trust
-# --------------------------------------------------
+# -----------------------------------------------------------------------
+# SUMMARY TABLE
+# -----------------------------------------------------------------------
+print(f"\n{'='*70}")
+print("BASELINE SIMULATION SUMMARY — ALL CITIES (12 months, no forced shocks)")
+print(f"{'='*70}")
 
-plt.figure()
-plt.plot(data["Average_Trust"])
-plt.title("Average Trust Over Time")
-plt.xlabel("Time Step")
-plt.ylabel("Trust")
+summary_df = pd.DataFrame(summaries)
+summary_df = summary_df.set_index("city")
 
-# --------------------------------------------------
-# PLOT 2 : Total Demand
-# --------------------------------------------------
+# Print formatted table
+col_width = 12
+header = (
+    f"{'City':22s} | {'Final USI':>10} | {'Gini':>6} | "
+    f"{'Trust':>6} | {'S_R':>5} | {'Collapse':>8}"
+)
+print(f"\n{header}")
+print("-" * len(header))
+for city, row in summary_df.iterrows():
+    collapse_str = "YES ❗" if row["collapse"] else "no"
+    print(
+        f"  {city:20s} | {row['final_usi']:>10.3f} | {row['final_gini']:>6.3f} | "
+        f"{row['final_trust']:>6.3f} | {row['final_S_R']:>5.3f} | {collapse_str:>8}"
+    )
 
-plt.figure()
-plt.plot(data["Total_Demand"])
-plt.title("Total Demand Over Time")
-plt.xlabel("Time Step")
-plt.ylabel("Demand")
-
-# --------------------------------------------------
-# PLOT 3 : Urban Stability Index
-# --------------------------------------------------
-
-plt.figure()
-plt.plot(data["USI"])
-plt.title("Urban Stability Index Over Time")
-plt.xlabel("Time Step")
-plt.ylabel("USI")
-
-# --------------------------------------------------
-# PLOT 4 : Gini Coefficient
-# --------------------------------------------------
-
-plt.figure()
-plt.plot(data["Gini"])
-plt.title("Gini Coefficient Over Time")
-plt.xlabel("Time Step")
-plt.ylabel("Gini")
-
-# --------------------------------------------------
-# PLOT 5 : Supply vs Demand
-# --------------------------------------------------
-
-plt.figure()
-plt.plot(data["Total_Supply"], label="Supply")
-plt.plot(data["Total_Demand"], label="Demand")
-plt.title("Supply vs Demand Over Time")
-plt.xlabel("Time Step")
-plt.ylabel("Resources")
-plt.legend()
-
-# --------------------------------------------------
-# PLOT 6 : USI Component Breakdown
-# --------------------------------------------------
-
-plt.figure()
-plt.plot(data["S_R"], label="Resource Sufficiency (S_R)")
-plt.plot(data["S_I"], label="Inequality Stability (S_I)")
-plt.plot(data["S_O"], label="Oscillation Stability (S_O)")
-plt.title("USI Component Breakdown")
-plt.xlabel("Time Step")
-plt.ylabel("Metric Value")
-plt.legend()
-
-# --------------------------------------------------
-# SHOW ALL PLOTS
-# --------------------------------------------------
-
-plt.show()
+print(f"\nResults saved in: {RESULTS_DIR.absolute()}/")
+print("Phase 5 baseline run complete.")
